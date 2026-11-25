@@ -1,0 +1,14 @@
+# Firmware binaries and generated images (supplied by each user / built locally)
+*.bin
+*.lzma
+*.xz
+*.cpio
+*.tar.bz2
+root_uImage*
+bImage
+ver
+_md5_*
+payload*
+extracted/
+build/
+__pycache__/
