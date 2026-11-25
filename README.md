@@ -20,8 +20,24 @@ sender. These patches normalize the launch command to
 `-m MJPG -r 640x480 -f 15` in every launcher.
 
 This does **not** add H.264 support; it only makes the box consistently request
-a format its own kernel can capture. A plain MJPEG webcam is still required for
-a usable video feed.
+a format its own kernel can capture.
+
+### Why a modern USB webcam still shows "video stream disconnected"
+
+Investigated on a Logitech BRIO with the patched firmware:
+
+- Camera capture works: 5–7 fps, ~400 KB/s in MJPG (`Grab[0]` in `uvs.log`).
+- The app handshake works: `uvc_stream` sends `vireq1` to `/tmp/serailupfifo`,
+  and `prt_com` logs `Received the command : vireq !!!`.
+- The failure is inside Creality's closed WebRTC sender: on connect it logs
+  `[send_h264_thread] ... brec:0` and immediately raises SIGSEGV. No H.264
+  record buffer is ever supplied to the sender.
+- Toggling NVRAM `cxsw videoPlayBack` makes no difference.
+
+There is no codec to install — the H.264 packetizer is compiled into
+`uvc_stream`; it crashes because it receives no H.264 frames. Resolving this
+requires Creality's own camera/firmware path; these patches only fix the bad
+format configuration.
 
 ## What is patched
 
