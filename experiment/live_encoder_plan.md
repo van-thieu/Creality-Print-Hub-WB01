@@ -45,3 +45,21 @@ app spinner. Remaining: NAL-boundary alignment and a live encoder.
 3. Test with the real camera; verify app shows video.
 4. Only then consider baking the patched binary + shim + encoder into a new
    firmware image (using `build_patched_firmware.py` as the base).
+
+## Update: raw YUYV is not viable
+
+Tested `-m yuv422` at 640x480 and 320x240: the driver reports
+`V4L2_PIX_FMT_YUYV` but delivers **no frames** (`select Timeout` continuously).
+Only MJPG produces frames on this USB 2.0 hub.
+
+A static MIPS x264 CLI was built successfully with the OpenWrt SDK
+(`--host=mipsel-openwrt-linux --enable-static --disable-asm`), and it runs on
+the box. But x264 cannot consume MJPG frames.
+
+**Remaining missing piece:** a static MIPS JPEG decoder (libjpeg-turbo) plus a
+small bridge that decodes the camera's MJPG frames to YUV and pipes them into
+x264. The shim then pads the resulting H.264 with Filler Data NALs (type 12) to
+the exact camera buffer size before handing it to `AvEncode_from_camera`.
+
+ffmpeg was attempted but the 19.07 SDK build fails on host autotools (`AM_ICONV`)
+and missing zlib; building libjpeg-turbo + x264 directly is the cleaner route.
