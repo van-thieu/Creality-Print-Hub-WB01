@@ -63,3 +63,23 @@ the exact camera buffer size before handing it to `AvEncode_from_camera`.
 
 ffmpeg was attempted but the 19.07 SDK build fails on host autotools (`AM_ICONV`)
 and missing zlib; building libjpeg-turbo + x264 directly is the cleaner route.
+
+## Full chain implemented (final test)
+
+Built and ran the complete pipeline on the box:
+- `mjpg2yuv`: static MIPS NanoJPEG decoder + RGB→I420 converter
+- static x264 CLI (`--input-csp i420 --input-res 640x480 --tune zerolatency --preset ultrafast`)
+- `h264feed_final.so`: shim that writes MJPG to a FIFO, reads x264's H.264,
+  emits complete NALs padded with Filler Data NALs.
+
+Result: `AvEncode_from_camera` logs `type:7` (SPS) — real H.264 from x264 is
+reaching Creality's parser. No crash.
+
+But the app still reports "video stream disconnected". x264 manages only
+~0.2 fps on this MIPS CPU, and the WebRTC log shows `bad pc recycle` / session
+destroyed before `on_connected`. The closed Creality signaling layer appears to
+give up when frames are too sparse.
+
+Conclusion: the missing pieces we could build are built; the remaining failure
+is in Creality's closed session logic combined with insufficient CPU for
+real-time encoding on this box.
